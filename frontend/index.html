@@ -608,6 +608,33 @@
 
 <audio id="player" preload="none"></audio>
 
+<!-- Bottom Player Bar -->
+<div class="bottom-player" id="bottomPlayer">
+  <div class="player-inner">
+    <div class="player-track-info">
+      <div class="player-art">
+        <img id="playerArt" src="" alt="">
+      </div>
+      <div class="player-text">
+        <div class="player-title" id="playerTitle">Song Title</div>
+        <div class="player-artist" id="playerArtist">Artist Name</div>
+      </div>
+    </div>
+    <div class="player-controls">
+      <button class="player-play-btn" id="playerPlayBtn" aria-label="Play/Pause">▶</button>
+      <div class="player-progress-wrap">
+        <span id="playerCurrentTime">0:00</span>
+        <input type="range" class="player-slider" id="playerSlider" min="0" max="100" value="0">
+        <span id="playerDuration">0:00</span>
+      </div>
+    </div>
+    <div class="player-actions">
+      <button class="share-btn" id="playerShareBtn" aria-label="Share">↗</button>
+      <button class="player-close" id="playerCloseBtn" aria-label="Close">✕</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---------------------------------------------------------------------------
 // Configuration — point this at your Render backend once deployed.
@@ -1078,33 +1105,6 @@ if (params.get('q')) {
   search();
 }
 </script>
-
-<!-- Bottom Player Bar -->
-<div class="bottom-player" id="bottomPlayer">
-  <div class="player-inner">
-    <div class="player-track-info">
-      <div class="player-art">
-        <img id="playerArt" src="" alt="">
-      </div>
-      <div class="player-text">
-        <div class="player-title" id="playerTitle">Song Title</div>
-        <div class="player-artist" id="playerArtist">Artist Name</div>
-      </div>
-    </div>
-    <div class="player-controls">
-      <button class="player-play-btn" id="playerPlayBtn" aria-label="Play/Pause">▶</button>
-      <div class="player-progress-wrap">
-        <span id="playerCurrentTime">0:00</span>
-        <input type="range" class="player-slider" id="playerSlider" min="0" max="100" value="0">
-        <span id="playerDuration">0:00</span>
-      </div>
-    </div>
-    <div class="player-actions">
-      <button class="share-btn" id="playerShareBtn" aria-label="Share">↗</button>
-      <button class="player-close" id="playerCloseBtn" aria-label="Close">✕</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
