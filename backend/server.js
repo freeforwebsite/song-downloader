@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 const { Readable } = require('stream');
 const { Innertube, UniversalCache } = require('youtubei.js');
 const ffmpegPath = require('ffmpeg-static');
@@ -180,35 +181,101 @@ app.get('/api/info/:videoId', async (req, res) => {
 
 const ALLOWED_BITRATES = [128, 192, 320];
 
-async function streamAudio({ videoId, bitrate, inline, res }) {
-  const { info, webStream } = await withFallback(async (yt) => {
-    const info = await yt.getInfo(videoId);
-    const webStream = await info.download({ type: 'audio', quality: 'best' });
-    return { info, webStream };
-  });
+async function getCobaltDownloadUrl(videoUrl, isAudioOnly) {
+  const instances = [
+    'https://api.cobalt.liubquanti.click/',
+    'https://cobalt.k6.cz/',
+    'https://api.cobalt.tools/'
+  ];
 
-  const title = (info.basic_info.title || 'audio').replace(/[^\w\s-]/g, '').trim();
-  const artist = info.basic_info.author || 'Unknown';
+  for (const instance of instances) {
+    try {
+      const parsed = new URL(instance);
+      const payload = JSON.stringify({
+        url: videoUrl,
+        downloadMode: isAudioOnly ? 'audio' : 'auto',
+        videoQuality: '1080',
+        audioFormat: 'mp3',
+        audioBitrate: '128'
+      });
 
-  res.setHeader('Content-Type', 'audio/mpeg');
-  if (!inline) {
-    res.setHeader('Content-Disposition', `attachment; filename="${title} - ${bitrate}kbps.mp3"`);
+      const response = await new Promise((resolve, reject) => {
+        const req = https.request({
+          hostname: parsed.hostname,
+          port: 443,
+          path: parsed.pathname || '/',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Content-Length': Buffer.byteLength(payload)
+          }
+        }, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+      });
+
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        const data = JSON.parse(response.body);
+        if (data.url) return data.url;
+      }
+    } catch (e) {
+      console.warn(`[Cobalt] Instance ${instance} failed:`, e.message);
+    }
   }
+  return null;
+}
 
-  const stream = Readable.fromWeb(webStream);
+async function streamAudio({ videoId, bitrate, inline, res }) {
+  try {
+    const { info, webStream } = await withFallback(async (yt) => {
+      const info = await yt.getInfo(videoId);
+      const webStream = await info.download({ type: 'audio', quality: 'best' });
+      return { info, webStream };
+    });
 
-  ffmpeg(stream)
-    .audioBitrate(bitrate)
-    .format('mp3')
-    .outputOptions([
-      '-metadata', `title=${title}`,
-      '-metadata', `artist=${artist}`,
-    ])
-    .on('error', (err) => {
-      console.error('ffmpeg error:', err.message);
-      if (!res.headersSent) res.status(500).end('Conversion failed');
-    })
-    .pipe(res, { end: true });
+    const title = (info.basic_info.title || 'audio').replace(/[^\w\s-]/g, '').trim();
+    const artist = info.basic_info.author || 'Unknown';
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    if (!inline) {
+      res.setHeader('Content-Disposition', `attachment; filename="${title} - ${bitrate}kbps.mp3"`);
+    }
+
+    const stream = Readable.fromWeb(webStream);
+
+    ffmpeg(stream)
+      .audioBitrate(bitrate)
+      .format('mp3')
+      .outputOptions([
+        '-metadata', `title=${title}`,
+        '-metadata', `artist=${artist}`,
+      ])
+      .on('error', (err) => {
+        console.error('ffmpeg error:', err.message);
+        if (!res.headersSent) res.status(500).end('Conversion failed');
+      })
+      .pipe(res, { end: true });
+  } catch (err) {
+    console.warn(`[streamAudio] youtubei.js failed: ${err.message}. Trying Cobalt fallback...`);
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    try {
+      const cobaltUrl = await getCobaltDownloadUrl(videoUrl, true);
+      if (cobaltUrl) {
+        console.log(`[streamAudio] Cobalt fallback success! Redirecting to: ${cobaltUrl}`);
+        return res.redirect(cobaltUrl);
+      }
+    } catch (cobaltErr) {
+      console.error('[streamAudio] Cobalt fallback error:', cobaltErr.message);
+    }
+    throw new Error('Audio streaming failed on all methods.');
+  }
 }
 
 // ---- Download endpoint: streams audio-only, converted to mp3 at chosen quality ----
