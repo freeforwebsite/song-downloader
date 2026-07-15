@@ -551,6 +551,153 @@
     color: var(--ivory);
   }
 
+  /* Tabs Styling */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px auto 30px auto;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  body.light .tabs {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.05);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    color: var(--smoke);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 25px;
+    transition: all 0.2s ease;
+  }
+  body.light .tab-btn {
+    color: #555;
+  }
+  .tab-btn.active {
+    background: var(--brass);
+    color: #1a0f00;
+    box-shadow: 0 4px 12px rgba(229, 184, 99, 0.2);
+  }
+  body.light .tab-btn.active {
+    color: #fff;
+    background: #c38f29;
+    box-shadow: 0 4px 12px rgba(195, 143, 41, 0.2);
+  }
+  .tab-btn:hover:not(.active) {
+    color: var(--ivory);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  body.light .tab-btn:hover:not(.active) {
+    color: #000;
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  /* Bulk Controls Bar */
+  .bulk-bar {
+    display: none; /* Only visible on Bulk tab when results exist */
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    max-width: 680px;
+    margin: 0 auto 20px auto;
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--shadow-sm);
+  }
+  body.light .bulk-bar {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+  .bulk-bar.show {
+    display: flex;
+  }
+  .bulk-select-all {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    user-select: none;
+  }
+  .bulk-select-all input[type="checkbox"],
+  .track-select-wrap input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--brass);
+    cursor: pointer;
+  }
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .bulk-quality-select {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--ivory);
+    border-radius: 10px;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  body.light .bulk-quality-select {
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #000;
+  }
+  .bulk-dl-btn {
+    padding: 10px 20px;
+    background: var(--brass);
+    border: none;
+    color: #1a0f00;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(229, 184, 99, 0.15);
+  }
+  .bulk-dl-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(229, 184, 99, 0.25);
+  }
+  .bulk-dl-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  body.light .bulk-dl-btn {
+    background: #c38f29;
+    color: #fff;
+  }
+
+  /* Checkbox overlay on tracks in Bulk Mode */
+  .track-select-wrap {
+    display: none; /* Only shown on bulk tab */
+    align-items: center;
+    justify-content: center;
+    padding-right: 12px;
+    flex-shrink: 0;
+  }
+  .bulk-mode-active .track-select-wrap {
+    display: flex;
+  }
+
   @media (max-width:640px){
     .track {
       padding: 24px 16px;
@@ -591,6 +738,12 @@
   <div class="kicker" data-i18n="kicker">song search &amp; retrieval</div>
 </div>
 
+<!-- Tabs switcher -->
+<div class="tabs">
+  <button class="tab-btn active" id="tabSingle" data-tab="single">Single Song</button>
+  <button class="tab-btn" id="tabBulk" data-tab="bulk">Bulk Download</button>
+</div>
+
 <div class="search-wrap">
   <div class="search-field">
     <input id="q" type="text" data-i18n-placeholder="placeholder" placeholder="Search a song, artist, or album…" autocomplete="off">
@@ -600,6 +753,22 @@
 </div>
 
 <main>
+  <!-- Bulk controls header -->
+  <div class="bulk-bar" id="bulkBar">
+    <label class="bulk-select-all">
+      <input type="checkbox" id="bulkSelectAll">
+      <span id="bulkSelectText">Select All</span>
+    </label>
+    <div class="bulk-actions">
+      <select class="bulk-quality-select" id="bulkQuality">
+        <option value="128">128 Kbps</option>
+        <option value="192" selected>192 Kbps (HQ)</option>
+        <option value="320">320 Kbps (Extreme)</option>
+      </select>
+      <button class="bulk-dl-btn" id="bulkDlBtn" disabled>Download Selected</button>
+    </div>
+  </div>
+
   <div id="status" class="status"></div>
   <div id="results"></div>
 </main>
@@ -802,15 +971,18 @@ async function search() {
   resultsEl.innerHTML = '';
   stopPlayback();
 
-  if (memCache.has(query)) {
-    renderResults(memCache.get(query));
+  const limit = activeTab === 'bulk' ? 50 : 1;
+  const cacheKey = `${query}_${limit}`;
+
+  if (memCache.has(cacheKey)) {
+    renderResults(memCache.get(cacheKey));
     statusEl.textContent = '';
     searchBtn.disabled = false;
     return;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}&limit=${limit}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t('genericError'));
 
@@ -819,7 +991,7 @@ async function search() {
       return;
     }
 
-    memCache.set(query, data.videos);
+    memCache.set(cacheKey, data.videos);
     statusEl.textContent = '';
     renderResults(data.videos);
   } catch (err) {
@@ -850,7 +1022,11 @@ const playerShareBtn = document.getElementById('playerShareBtn');
 let activeVideoData = null; // store current video metadata
 let isSeeking = false;
 
+let loadedVideos = [];
+
 function renderResults(videos) {
+  loadedVideos = videos;
+
   // Ensure durationText is present
   videos.forEach(v => {
     if (!v.durationText && v.durationSeconds) {
@@ -874,7 +1050,35 @@ function renderResults(videos) {
     const shareBtn = row.querySelector('.share-btn');
     if (shareBtn) shareBtn.addEventListener('click', () => shareTrack(v));
     updateFileSize(row, v.durationSeconds);
+
+    const cb = row.querySelector('.track-select-cb');
+    if (cb) cb.addEventListener('change', updateBulkDLButtonState);
   });
+
+  if (activeTab === 'bulk') {
+    bulkSelectAll.checked = true;
+    toggleAllCheckboxes(true);
+    bulkBar.classList.add('show');
+  } else {
+    bulkBar.classList.remove('show');
+  }
+}
+
+function updateBulkDLButtonState() {
+  const selectedCbs = document.querySelectorAll('.track-select-cb:checked');
+  const count = selectedCbs.length;
+  bulkDlBtn.disabled = count === 0;
+  bulkDlBtn.textContent = count > 0 ? `Download Selected (${count})` : 'Download Selected';
+
+  const allCbs = document.querySelectorAll('.track-select-cb');
+  bulkSelectAll.checked = allCbs.length > 0 && count === allCbs.length;
+}
+
+function toggleAllCheckboxes(checked) {
+  document.querySelectorAll('.track-select-cb').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateBulkDLButtonState();
 }
 
 function updateFileSize(row, durationSeconds) {
@@ -886,6 +1090,9 @@ function updateFileSize(row, durationSeconds) {
 function renderTrack(v, i) {
   return `
     <div class="track" id="track-${i}">
+      <div class="track-select-wrap">
+        <input type="checkbox" class="track-select-cb" data-index="${i}" checked>
+      </div>
       <div class="art">
         <img src="${v.thumbnail || ''}" alt="" loading="lazy">
         <button class="play-btn" aria-label="Preview">
@@ -1010,11 +1217,11 @@ playerSlider.addEventListener('change', () => {
 });
 
 // ---------------- Download with progress ----------------
-async function download(row, videoId) {
+async function download(row, videoId, qualityOverride = null) {
   const btn = row.querySelector('.dl-btn');
   const fill = btn.querySelector('.progress-fill');
   const label = btn.querySelector('.label');
-  const quality = Number(row.querySelector('.quality button.active').dataset.q);
+  const quality = qualityOverride || Number(row.querySelector('.quality button.active').dataset.q);
   const title = row.querySelector('h3').textContent;
 
   btn.disabled = true;
@@ -1096,9 +1303,78 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) { return escapeHtml(str).replace(/"/g, '&quot;'); }
 
+// ---------------- Bulk Download Manager ----------------
+let activeTab = 'single';
+
+const tabSingle = document.getElementById('tabSingle');
+const tabBulk = document.getElementById('tabBulk');
+const bulkBar = document.getElementById('bulkBar');
+const bulkSelectAll = document.getElementById('bulkSelectAll');
+const bulkSelectText = document.getElementById('bulkSelectText');
+const bulkQuality = document.getElementById('bulkQuality');
+const bulkDlBtn = document.getElementById('bulkDlBtn');
+
+function switchTab(tab) {
+  activeTab = tab;
+  tabSingle.classList.toggle('active', tab === 'single');
+  tabBulk.classList.toggle('active', tab === 'bulk');
+  resultsEl.classList.toggle('bulk-mode-active', tab === 'bulk');
+
+  // Clear results and inputs when switching tabs
+  resultsEl.innerHTML = '';
+  statusEl.innerHTML = '';
+  q.value = '';
+  dropdown.classList.remove('show');
+  bulkBar.classList.remove('show');
+  stopPlayback();
+}
+
+async function bulkDownloadSelected() {
+  const selectedCbs = document.querySelectorAll('.track-select-cb:checked');
+  if (!selectedCbs.length) return;
+
+  const targetQuality = Number(bulkQuality.value);
+
+  // Disable controls during bulk download
+  bulkDlBtn.disabled = true;
+  bulkSelectAll.disabled = true;
+  document.querySelectorAll('.track-select-cb').forEach(cb => cb.disabled = true);
+  bulkQuality.disabled = true;
+
+  // Run downloads sequentially
+  for (let i = 0; i < selectedCbs.length; i++) {
+    const cb = selectedCbs[i];
+    const index = Number(cb.dataset.index);
+    const row = document.getElementById(`track-${index}`);
+    const video = loadedVideos[index];
+
+    if (!row || !video) continue;
+
+    // Update bulk button message
+    bulkDlBtn.textContent = `Downloading ${i + 1} of ${selectedCbs.length}...`;
+
+    try {
+      await download(row, video.videoId, targetQuality);
+    } catch (err) {
+      console.error(`Bulk download failed for videoId ${video.videoId}:`, err);
+    }
+  }
+
+  // Restore controls
+  bulkSelectAll.disabled = false;
+  document.querySelectorAll('.track-select-cb').forEach(cb => cb.disabled = false);
+  bulkQuality.disabled = false;
+  bulkSelectAll.checked = false;
+  toggleAllCheckboxes(false);
+}
+
 // ---------------- Init ----------------
 searchBtn.addEventListener('click', search);
 q.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+tabSingle.addEventListener('click', () => switchTab('single'));
+tabBulk.addEventListener('click', () => switchTab('bulk'));
+bulkSelectAll.addEventListener('change', () => toggleAllCheckboxes(bulkSelectAll.checked));
+bulkDlBtn.addEventListener('click', bulkDownloadSelected);
 
 applyTheme();
 applyI18n();
@@ -1127,6 +1403,7 @@ async function loadSharedVideo(videoId) {
 // Support shared links: ?v=... or ?q=...
 const params = new URLSearchParams(window.location.search);
 if (params.get('v')) {
+  switchTab('single');
   loadSharedVideo(params.get('v'));
 } else if (params.get('q')) {
   q.value = params.get('q');

@@ -107,30 +107,44 @@ app.get('/api/search', async (req, res) => {
   const query = (req.query.q || '').trim();
   if (!query) return res.status(400).json({ error: 'Missing search query' });
 
-  const cached = searchCache.get(query);
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 1));
+  const cacheKey = `${query}_${limit}`;
+
+  const cached = searchCache.get(cacheKey);
   if (cached) return res.json({ videos: cached, cached: true });
 
   try {
     const results = await withFallback(async (yt) => yt.search(query, { type: 'video' }));
 
-    const videos = (results.videos || [])
-      .filter(v => v.id)
-      .slice(0, 1) // Return only the single best match
-      .map(v => {
-        const rawTitle = v.title?.text || v.title || 'Unknown title';
-        const rawChannel = v.author?.name || 'Unknown artist';
-        const { title, artist } = cleanMetadata(rawTitle, rawChannel);
-        return {
+    const seenTitles = new Set();
+    const uniqueVideos = [];
+
+    for (const v of (results.videos || [])) {
+      if (!v.id) continue;
+
+      const rawTitle = v.title?.text || v.title || 'Unknown title';
+      const rawChannel = v.author?.name || 'Unknown artist';
+      const { title, artist } = cleanMetadata(rawTitle, rawChannel);
+
+      // Normalize title to check for duplicates (lowercase, alphanumeric only)
+      const normalized = title.toLowerCase().replace(/[^\w]/g, '');
+
+      if (!seenTitles.has(normalized)) {
+        seenTitles.add(normalized);
+        uniqueVideos.push({
           videoId: v.id,
           title,
           artist,
           durationText: v.duration?.text || null,
           durationSeconds: v.duration?.seconds || null,
           thumbnail: pickBestThumbnail(v.thumbnails),
-        };
-      });
+        });
+      }
+    }
 
-    searchCache.set(query, videos);
+    const videos = uniqueVideos.slice(0, limit);
+
+    searchCache.set(cacheKey, videos);
     res.json({ videos, cached: false });
   } catch (err) {
     console.error('Search error:', err);
