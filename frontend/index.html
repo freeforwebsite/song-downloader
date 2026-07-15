@@ -697,6 +697,58 @@
   .bulk-mode-active .track-select-wrap {
     display: flex;
   }
+  /* Bulk mode side-by-side grid layout */
+  #results.bulk-mode-active {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .bulk-mode-active .track {
+    margin: 0;
+    max-width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    gap: 12px;
+  }
+
+  /* Make the cover art smaller in bulk mode */
+  .bulk-mode-active .art {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+  }
+  .bulk-mode-active .play-btn .circle {
+    width: 36px;
+    height: 36px;
+    border-width: 1px;
+  }
+  .bulk-mode-active .play-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .bulk-mode-active .meta h3 {
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+    -webkit-line-clamp: 1;
+  }
+  .bulk-mode-active .meta .sub {
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+  }
+  .bulk-mode-active .controls {
+    gap: 8px;
+  }
+  .bulk-mode-active .quality button {
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+  .bulk-mode-active .dl-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
 
   @media (max-width:640px){
     .track {
