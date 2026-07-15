@@ -181,7 +181,7 @@ app.get('/api/info/:videoId', async (req, res) => {
 
 const ALLOWED_BITRATES = [128, 192, 320];
 
-async function getCobaltDownloadUrl(videoUrl, isAudioOnly) {
+async function getCobaltDownloadUrl(videoUrl, isAudioOnly, bitrate = 128) {
   const instances = [
     'https://api.cobalt.liubquanti.click/',
     'https://cobalt.k6.cz/',
@@ -196,7 +196,7 @@ async function getCobaltDownloadUrl(videoUrl, isAudioOnly) {
         downloadMode: isAudioOnly ? 'audio' : 'auto',
         videoQuality: '1080',
         audioFormat: 'mp3',
-        audioBitrate: '128'
+        audioBitrate: String(bitrate)
       });
 
       const response = await new Promise((resolve, reject) => {
@@ -233,6 +233,20 @@ async function getCobaltDownloadUrl(videoUrl, isAudioOnly) {
 }
 
 async function streamAudio({ videoId, bitrate, inline, res }) {
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  // Try Cobalt first for instant speed and zero server overhead
+  try {
+    const cobaltUrl = await getCobaltDownloadUrl(videoUrl, true, bitrate);
+    if (cobaltUrl) {
+      console.log(`[streamAudio] Cobalt redirect success! Redirecting to: ${cobaltUrl}`);
+      return res.redirect(cobaltUrl);
+    }
+  } catch (cobaltErr) {
+    console.warn('[streamAudio] Cobalt failed, trying youtubei.js + ffmpeg fallback:', cobaltErr.message);
+  }
+
+  // Fallback to youtubei.js + local ffmpeg
   try {
     const { info, webStream } = await withFallback(async (yt) => {
       const info = await yt.getInfo(videoId);
@@ -263,18 +277,8 @@ async function streamAudio({ videoId, bitrate, inline, res }) {
       })
       .pipe(res, { end: true });
   } catch (err) {
-    console.warn(`[streamAudio] youtubei.js failed: ${err.message}. Trying Cobalt fallback...`);
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    try {
-      const cobaltUrl = await getCobaltDownloadUrl(videoUrl, true);
-      if (cobaltUrl) {
-        console.log(`[streamAudio] Cobalt fallback success! Redirecting to: ${cobaltUrl}`);
-        return res.redirect(cobaltUrl);
-      }
-    } catch (cobaltErr) {
-      console.error('[streamAudio] Cobalt fallback error:', cobaltErr.message);
-    }
-    throw new Error('Audio streaming failed on all methods.');
+    console.error('[streamAudio] All methods failed:', err.message);
+    throw err;
   }
 }
 
