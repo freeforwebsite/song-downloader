@@ -851,6 +851,13 @@ let activeVideoData = null; // store current video metadata
 let isSeeking = false;
 
 function renderResults(videos) {
+  // Ensure durationText is present
+  videos.forEach(v => {
+    if (!v.durationText && v.durationSeconds) {
+      v.durationText = formatTime(v.durationSeconds);
+    }
+  });
+
   resultsEl.innerHTML = videos.map((v, i) => renderTrack(v, i)).join('');
 
   videos.forEach((v, i) => {
@@ -1068,7 +1075,7 @@ async function download(row, videoId) {
 
 // ---------------- Share ----------------
 async function shareTrack(v) {
-  const shareUrl = `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(v.title)}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?v=${v.videoId}`;
   const shareData = { title: v.title, text: `${v.title} — ${v.artist}`, url: shareUrl };
   if (navigator.share) {
     try { await navigator.share(shareData); } catch {}
@@ -1096,9 +1103,32 @@ q.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 applyTheme();
 applyI18n();
 
-// Support shared links: ?q=...
+async function loadSharedVideo(videoId) {
+  searchBtn.disabled = true;
+  statusEl.textContent = t('searching');
+  resultsEl.innerHTML = '';
+  stopPlayback();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/info/${videoId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t('genericError'));
+
+    q.value = data.title;
+    renderResults([data]);
+    statusEl.textContent = '';
+  } catch (err) {
+    statusEl.innerHTML = `<div class="error-box">⚠️ ${escapeHtml(err.message)}</div>`;
+  } finally {
+    searchBtn.disabled = false;
+  }
+}
+
+// Support shared links: ?v=... or ?q=...
 const params = new URLSearchParams(window.location.search);
-if (params.get('q')) {
+if (params.get('v')) {
+  loadSharedVideo(params.get('v'));
+} else if (params.get('q')) {
   q.value = params.get('q');
   search();
 }
